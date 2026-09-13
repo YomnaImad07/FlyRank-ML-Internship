@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detecting Content Decline Before It's Obvious</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #FAF8F3;
+    --ink: #211D18;
+    --ink-soft: #55503F;
+    --line: #DCD5C4;
+    --navy: #22314A;
+    --gold: #A9752F;
+    --gold-soft: #F3E7D3;
+    --bad: #B4553F;
+    --good: #3F6B52;
+    --max: 700px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- Header / masthead ---------- */
+  header.masthead{
+    border-bottom: 1px solid var(--line);
+    padding: 64px 0 40px;
+  }
+  .kicker{
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    margin: 0 0 18px;
+  }
+  h1.title{
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 600;
+    margin: 0 0 20px;
+    max-width: 640px;
+  }
+  .subdek{
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 560px;
+    margin: 0 0 26px;
+  }
+  .meta{
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .meta a{ color: var(--navy); }
+
+  /* ---------- Abstract ---------- */
+  section.abstract{
+    padding: 40px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .abstract h2{
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 0 0 14px;
+  }
+  .abstract p{
+    font-size: 17px;
+    color: var(--ink);
+  }
+
+  /* ---------- Sections ---------- */
+  section.body-section{
+    padding: 48px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  section.body-section:last-of-type{ border-bottom: none; }
+
+  h2.section-title{
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 22px;
+  }
+
+  h3.sub-title{
+    font-size: 18px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: var(--navy);
+  }
+
+  p{ margin: 0 0 16px; }
+
+  code, .mono{
+    font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+    font-size: 15px;
+    background: #F0ECE1;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  ul.plain{
+    margin: 0 0 16px;
+    padding-left: 22px;
+  }
+  ul.plain li{ margin-bottom: 8px; }
+
+  /* ---------- Big number hero (result) ---------- */
+  .result-compare{
+    display:flex;
+    gap: 36px;
+    align-items: flex-end;
+    margin: 30px 0 8px;
+    flex-wrap: wrap;
+  }
+  .result-block{ flex: 1; min-width: 180px; }
+  .result-label{
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .result-number{
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .result-number.bad{ color: var(--bad); }
+  .result-number.good{ color: var(--good); }
+  .result-note{
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .lift-arrow{
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--gold);
+    font-weight: 600;
+    align-self:center;
+    padding-bottom: 14px;
+  }
+
+  /* ---------- feature importance bars ---------- */
+  .fi-row{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    margin-bottom: 10px;
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .fi-label{ width: 165px; flex-shrink:0; color: var(--ink); }
+  .fi-track{
+    flex:1;
+    background:#EFE9DA;
+    height: 10px;
+    border-radius: 2px;
+    overflow:hidden;
+  }
+  .fi-fill{
+    height:100%;
+    background: var(--navy);
+    border-radius: 2px;
+  }
+  .fi-row.top .fi-fill{ background: var(--gold); }
+  .fi-val{ width: 46px; text-align:right; color: var(--ink-soft); }
+
+  /* ---------- reason code distribution ---------- */
+  .rc-row{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    margin-bottom: 10px;
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .rc-label{ width: 130px; flex-shrink:0; }
+  .rc-track{ flex:1; background:#EFE9DA; height:10px; border-radius:2px; overflow:hidden; }
+  .rc-fill{ height:100%; border-radius:2px; }
+  .rc-val{ width: 48px; text-align:right; color: var(--ink-soft); }
+
+  /* ---------- table ---------- */
+  table.data-table{
+    width:100%;
+    border-collapse: collapse;
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+    margin: 24px 0;
+  }
+  table.data-table th, table.data-table td{
+    text-align:left;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.data-table th{ color: var(--ink-soft); font-weight:500; }
+
+  /* ---------- recommendation list ---------- */
+  .rec-list{ list-style:none; margin:0; padding:0; }
+  .rec-item{
+    display:flex;
+    gap:16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .rec-item:last-child{ border-bottom:none; }
+  .rec-num{
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    color: var(--navy);
+    font-size:15px;
+    flex-shrink:0;
+    width: 22px;
+  }
+
+  /* ---------- limitations callout ---------- */
+  .callout{
+    background: var(--gold-soft);
+    border-left: 3px solid var(--gold);
+    padding: 18px 20px;
+    font-size: 16px;
+    color: #4A3A1E;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    padding: 40px 0 60px;
+    font-family:'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  footer a{ color: var(--navy); }
+
+  @media (max-width: 560px){
+    body{ font-size: 16.5px; }
+    h1.title{ font-size: 30px; }
+    .result-number{ font-size: 38px; }
+    header.masthead{ padding: 44px 0 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">FlyRank ML Internship &nbsp;·&nbsp; Capstone Research</p>
+    <h1 class="title">Detecting content decline before it's obvious</h1>
+    <p class="subdek">A ranking-volatility approach to refresh prioritization, tested across ~70 pseudonymized clients.</p>
+    <p class="meta">Bayan Saleh &nbsp;|&nbsp; Search Intelligence &mdash; Refresh / Content Opportunity Scoring lane &nbsp;|&nbsp; <a href="https://github.com/YomnaImad07/FlyRank-ML-Internship">Code &amp; notebooks</a></p>
+  </header>
+
+  <section class="abstract">
+    <h2>Abstract</h2>
+    <p>Content teams need to know which pages to review first, but simple rules based on traffic alone miss early warning signs. This project asks whether search-ranking instability predicts future decline better than raw impression trends alone. Using roughly 79 million rows of pseudonymized search performance data across about 70 clients, I engineered a position-volatility feature and trained a Random Forest classifier, validated with a client-grouped split to prevent leakage. The model reached 63.5% accuracy (macro F1: 0.617), with position volatility emerging as the single strongest predictor &mdash; ahead of query-mix and impression-based signals. The result is translated into a five-category reason-code system that content teams can use to prioritize review work with a stated reason, not just a score.</p>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">The problem</h2>
+    <p>Teams managing large content libraries run into the same recurring decision: with thousands of pages and limited time, which ones should be reviewed or refreshed first? A common heuristic flags pages with decent content but low traffic &mdash; the logic being that the content is fine, it's simply not getting seen.</p>
+    <p>This project tests that heuristic against a trained model, and asks a second, harder question: does search-ranking <em>volatility</em> &mdash; how much a page's position swings day to day &mdash; carry a warning signal before a decline in traffic becomes obvious?</p>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">Data</h2>
+    <p>Data comes from the FlyRank ML Internship warehouse release: roughly 17 months of daily search performance across about 70 pseudonymized clients, plus a 90-day query-level table, hosted as Parquet on Hugging Face.</p>
+    <ul class="plain">
+      <li><span class="mono">fact_content_daily_performance</span> &mdash; ~79M rows of daily impressions, clicks, and average position per content item.</li>
+      <li><span class="mono">fact_content_query_90d</span> &mdash; query-mix signals per page over a trailing 90-day window.</li>
+      <li><span class="mono">dim_clients</span> &mdash; per-client history depth, used to confirm the panel is unbalanced across clients before designing any time window.</li>
+    </ul>
+    <p>Content items with fewer than 50 impressions in the prior 30-day window were excluded to avoid noisy, low-volume signals. No client names, domains, URLs, raw queries, or credentials appear anywhere in this write-up or the underlying code &mdash; all identifiers are pseudonymized hashes provided by the release itself.</p>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">Methodology</h2>
+    <p>Every content item is scored on two signals: its 30-day impression change ratio, and its position volatility (the standard deviation of average search position over a 90-day window). The impression-change and query-mix features were built first, following the shape of the lane's starter notebook; position volatility is the feature I added myself, on the hypothesis that an unstable ranking is an earlier warning sign than a traffic drop that has already happened.</p>
+
+    <h3 class="sub-title">Label definition</h3>
+    <p>A page is labeled <strong>declining</strong> if impressions dropped 20% or more month-over-month, using only data available before the outcome window &mdash; features come from the prior 30&ndash;60 day period, and the label from the following 30 days, so the model is never shown the outcome it's predicting.</p>
+
+    <h3 class="sub-title">Validation design</h3>
+    <p>The first pass used a random train/test split, which lets pages from the same client appear in both sets &mdash; a form of leakage, since the model can partly memorize a client instead of learning something that generalizes. I replaced it with a <span class="mono">GroupShuffleSplit</span> on client ID, so no client appears in both training and test data. This is the honest evaluation: how the model performs on a client it has never seen.</p>
+
+    <h3 class="sub-title">Reason-code thresholds</h3>
+    <p>Five categories were derived from the same two signals, using thresholds set by inspecting the data's distribution rather than an external ground truth:</p>
+    <ul class="plain">
+      <li><strong>Declining</strong> &mdash; impressions dropped 40%+ month-over-month</li>
+      <li><strong>Recovering</strong> &mdash; impressions grew 40%+ and volatility is in the top quartile</li>
+      <li><strong>Volatile</strong> &mdash; volatility is in the top quartile, with no clear directional trend</li>
+      <li><strong>Stable&ndash;Growing</strong> &mdash; impressions grew 40%+ with low volatility</li>
+      <li><strong>Stable&ndash;Flat</strong> &mdash; change within &plusmn;40%, with low volatility</li>
+    </ul>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">Results</h2>
+
+    <h3 class="sub-title">Model vs. baseline</h3>
+    <div class="result-compare">
+      <div class="result-block">
+        <div class="result-label">Random split (leakage-prone)</div>
+        <div class="result-number bad">61.2%</div>
+        <div class="result-note">accuracy &middot; macro F1 0.570</div>
+      </div>
+      <div class="lift-arrow">&rarr;</div>
+      <div class="result-block">
+        <div class="result-label">Client-grouped split + volatility feature</div>
+        <div class="result-number good">63.5%</div>
+        <div class="result-note">accuracy &middot; macro F1 0.617</div>
+      </div>
+    </div>
+    <p>The stricter, client-grouped evaluation &mdash; combined with the position-volatility feature &mdash; did not just hold up under a harder test, it improved on the naive baseline. That is the more interesting finding: the signal survives being tested on clients the model has never seen.</p>
+
+    <h3 class="sub-title">What carries the signal</h3>
+    <div style="margin-top:18px;">
+      <div class="fi-row top"><div class="fi-label">position_volatility</div><div class="fi-track"><div class="fi-fill" style="width:100%"></div></div><div class="fi-val">0.231</div></div>
+      <div class="fi-row"><div class="fi-label">rare_share</div><div class="fi-track"><div class="fi-fill" style="width:79%"></div></div><div class="fi-val">0.183</div></div>
+      <div class="fi-row"><div class="fi-label">imp_prev30</div><div class="fi-track"><div class="fi-fill" style="width:76%"></div></div><div class="fi-val">0.176</div></div>
+      <div class="fi-row"><div class="fi-label">anon_share</div><div class="fi-track"><div class="fi-fill" style="width:75%"></div></div><div class="fi-val">0.173</div></div>
+      <div class="fi-row"><div class="fi-label">top_query_share</div><div class="fi-track"><div class="fi-fill" style="width:60%"></div></div><div class="fi-val">0.137</div></div>
+      <div class="fi-row"><div class="fi-label">visible_queries</div><div class="fi-track"><div class="fi-fill" style="width:44%"></div></div><div class="fi-val">0.101</div></div>
+    </div>
+    <p style="margin-top:18px;">Position volatility &mdash; the feature engineered specifically for this project, not one supplied by the starter pipeline &mdash; is the strongest single predictor of the six. Pages whose ranking swings day to day are more likely to be flagged as declining than pages that are simply losing raw traffic.</p>
+
+    <h3 class="sub-title">Reason-code distribution</h3>
+    <div style="margin-top:18px;">
+      <div class="rc-row"><div class="rc-label">Declining</div><div class="rc-track"><div class="rc-fill" style="width:100%; background:var(--bad);"></div></div><div class="rc-val">47.3%</div></div>
+      <div class="rc-row"><div class="rc-label">Stable&ndash;Flat</div><div class="rc-track"><div class="rc-fill" style="width:64%; background:#8B8567;"></div></div><div class="rc-val">30.5%</div></div>
+      <div class="rc-row"><div class="rc-label">Stable&ndash;Growing</div><div class="rc-track"><div class="rc-fill" style="width:25%; background:var(--good);"></div></div><div class="rc-val">12.0%</div></div>
+      <div class="rc-row"><div class="rc-label">Volatile</div><div class="rc-track"><div class="rc-fill" style="width:16%; background:var(--gold);"></div></div><div class="rc-val">7.6%</div></div>
+      <div class="rc-row"><div class="rc-label">Recovering</div><div class="rc-track"><div class="rc-fill" style="width:6%; background:var(--navy);"></div></div><div class="rc-val">2.6%</div></div>
+    </div>
+    <p style="margin-top:18px;">Applied across roughly 102,000 content items with sufficient history, the largest single group is Declining &mdash; consistent with the underlying label being common across an aging content library.</p>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">Limitations &amp; honest framing</h2>
+    <div class="callout">
+      This is a single-dataset, observational study. The reason-code thresholds were chosen by inspecting this data's distribution, not an external ground truth, and may not transfer to other verticals. The model identifies association, not causation &mdash; it shows that volatility co-occurs with decline in this data, not that fixing volatile pages prevents decline. Results should be read as decision-support signals, not guarantees, and the 63.5% accuracy figure describes this dataset's held-out clients, not a universal rate.
+    </div>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">Ranked recommendations</h2>
+    <ul class="rec-list">
+      <li class="rec-item"><span class="rec-num">1</span><span>Prioritize <strong>Declining</strong> pages first &mdash; the largest group, and the one with the clearest, most certain signal.</span></li>
+      <li class="rec-item"><span class="rec-num">2</span><span>Route <strong>Volatile</strong> pages to manual review before any automated action &mdash; the model flags instability, not its cause.</span></li>
+      <li class="rec-item"><span class="rec-num">3</span><span>Leave <strong>Stable&ndash;Growing</strong> pages alone. Protect, don't touch.</span></li>
+      <li class="rec-item"><span class="rec-num">4</span><span>Hold <strong>Recovering</strong> pages for one more review cycle before deciding whether the recovery is real.</span></li>
+      <li class="rec-item"><span class="rec-num">5</span><span><strong>Stable&ndash;Flat</strong> pages are the lowest priority for limited review time.</span></li>
+    </ul>
+  </section>
+
+  <section class="body-section">
+    <h2 class="section-title">Reproducibility</h2>
+    <p>All notebooks, from the early weekly assignments through the capstone feature engineering and modeling pipeline described above, are in the project repository under <span class="mono">work/notebooks/</span>. The direct link to this page is recorded at <span class="mono">submission/paper_url.txt</span> in the repository root.</p>
+  </section>
+
+  <footer>
+    <p>Built on the FlyRank ML Internship dataset &mdash; <a href="https://flyrank.ai">flyrank.ai</a>.</p>
+  </footer>
+
+</div>
+
+</body>
+</html>
